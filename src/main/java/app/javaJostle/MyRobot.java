@@ -25,7 +25,6 @@ public class MyRobot extends Robot{
         super(x, y, 2, 3, 2, 3,"bob", ".png", "defaultProjectileImage.png");
         // Health: 3, Speed: 3, Attack Speed: 2, Projectile Strength: 2
         // Total = 10
-        // Image name is "myRobotImage.png"
     }
 
     private class Tile {

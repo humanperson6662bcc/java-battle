@@ -5,15 +5,13 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.text.DecimalFormat;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
 public class GameManager {
-    private ArrayList<String> robotOptions; // Includes "MyRobot" first, then others
+    private ArrayList<String> robotOptions;
     private ArrayList<String> mapOptions;   // Renamed from mapNames for consistency
 
     private JFrame frame; // Menu frame
@@ -62,44 +60,24 @@ public class GameManager {
 
     private void loadRobotOptions() {
         robotOptions.clear();
-        Set<String> foundRobotNames = new HashSet<>();
-
-        robotOptions.add("MyRobot"); // Prioritize "MyRobot"
-        foundRobotNames.add("MyRobot");
-
-        File robotsDir = new File("src/main/resources/robots");
-        if (robotsDir.exists() && robotsDir.isDirectory()) {
-            File[] files = robotsDir.listFiles();
+        File robotsClassDir = new File("src/main/resources/robots/app/javaJostle");
+        if (robotsClassDir.exists() && robotsClassDir.isDirectory()) {
+            File[] files = robotsClassDir.listFiles();
             if (files != null) {
-                List<String> otherRobotNames = new ArrayList<>();
+                List<String> robotNames = new ArrayList<>();
                 for (File file : files) {
                     if (file.isFile() && file.getName().endsWith(".class") && !file.getName().contains("$")) {
                         String name = file.getName().substring(0, file.getName().length() - ".class".length());
-                        if (!name.equals("MyRobot") && !foundRobotNames.contains(name)) {
-                            otherRobotNames.add(name);
-                        }
+                        robotNames.add(name);
                     }
                 }
-                Collections.sort(otherRobotNames);
-                robotOptions.addAll(otherRobotNames);
+                Collections.sort(robotNames);
+                robotOptions.addAll(robotNames);
             }
-        }
-        if (robotOptions.size() == 1 && robotOptions.contains("MyRobot") && foundRobotNames.size() == 1 && !(new File(robotsDir, "MyRobot.class").exists())) {
-            // If only "MyRobot" is hardcoded and its .class file doesn't exist in the dir,
-            // it might be an issue. For now, we assume it's a valid option.
-            // If no robots at all (even MyRobot.class is missing), add a fallback.
-             if (!new File(robotsDir, "MyRobot.class").exists() && robotOptions.size() <=1 ) { // Check if MyRobot.class exists
-                robotOptions.clear(); // Clear if MyRobot was just a placeholder
-                robotOptions.add("DefaultBot"); // Fallback
-                System.err.println("MyRobot.class not found and no other robots. Added DefaultBot.");
-             }
-        } else if (robotOptions.isEmpty()){
-             robotOptions.add("DefaultBot"); // Fallback
-             System.err.println("No robot class files found. Added DefaultBot.");
         }
     }
 
-    private void loadMapOptions() { // Renamed from loadMapNames
+    private void loadMapOptions() {
         mapOptions.clear();
         File mapsDir = new File("src/main/resources/maps");
         if (mapsDir.exists() && mapsDir.isDirectory()) {

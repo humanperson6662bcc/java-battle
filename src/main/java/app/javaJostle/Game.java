@@ -18,7 +18,7 @@ class Game extends JPanel {
     private int duration = 0;
     private Random randomGenerator; // Added for smartSpawn
     // Fields to store current display parameters
-    private int currentWidth, currentHeight, currentCameraX, currentCameraY, currentTileSize;
+    private int currentWidth, currentHeight, currentCameraX, currentCameraY;
     private double currentZoomFactor;
     private int maxDuration;
 
@@ -191,7 +191,7 @@ class Game extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
-        long startTime = System.nanoTime();
+        //long startTime = System.nanoTime();
         super.paintComponent(g); // Clears the panel
         if (map != null) {
             // Pass the integer zoomFactor directly
@@ -237,8 +237,8 @@ class Game extends JPanel {
                 }
             }
         }
-        long endTime = System.nanoTime();
-        long duration = (endTime - startTime); // in nanoseconds
+        //long endTime = System.nanoTime();
+        //long duration = (endTime - startTime); // in nanoseconds
         // System.out.println("Map drawing time: " + duration / 1_000_000.0 + " ms");
     }
 
