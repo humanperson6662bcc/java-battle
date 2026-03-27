@@ -11,30 +11,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.awt.Point;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
-class Game extends JPanel {
-    private final AtomicInteger thinkThreadCounter = new AtomicInteger(1);
-    private final ExecutorService thinkExecutor = Executors.newFixedThreadPool(
-        Math.max(2, Runtime.getRuntime().availableProcessors()),
-        new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable runnable) {
-                Thread thread = new Thread(runnable);
-                thread.setName("RobotThinkThread-" + thinkThreadCounter.getAndIncrement());
-                thread.setDaemon(true);
-                return thread;
-            }
-        }
-    );
-
+public class Game extends JPanel {
     private ArrayList<Robot> robots;
     private ArrayList<Projectile> projectiles = new ArrayList<>();
     private ArrayList<PowerUp> powerUps;
@@ -245,19 +223,14 @@ class Game extends JPanel {
     }
 
     public void step() {
-        final long THINK_TIME_LIMIT_MS = 5;
-
-        // Create one independent snapshot per alive robot in a single pass before any thinking begins.
-        // This ensures no bot can corrupt another bot's view of the world.
-        final HashMap<Robot, Robot.ThinkSnapshot> snapshotMap = new HashMap<>();
-        if (robots != null) {
-            for (Robot robot : robots) {
-                if (robot.isAlive()) {
-                    snapshotMap.put(robot, Robot.createThinkSnapshot(robots, projectiles, map, powerUps, robot));
-                }
+        Set<Thread> threads = Thread.getAllStackTraces().keySet();
+        ArrayList<String> excludeRobots = new ArrayList<String>();
+        for(Thread thread : threads) {
+            String name = thread.getName();
+            if(name.contains("RobotThinkThread-")) {
+                excludeRobots.add(name.split("RobotThinkThread-")[1]);
             }
         }
-        rebuildRobotGrid();
 
         if (robots != null) {
             for (Robot robot : robots) {
@@ -265,43 +238,32 @@ class Game extends JPanel {
                     continue;
                 }
 
-                final Robot.ThinkSnapshot snapshot = snapshotMap.get(robot);
-                robot.setSuccessfulThink(true);
-                Future<?> thinkFuture = thinkExecutor.submit(() -> {
-                    Robot.beginThinkContext(snapshot, robot);
+                if(excludeRobots.contains(robot.getName())) {
+                    robot.setSuccessfulThink(false);
+                    System.err.println("Robot " + robot.getName() + " thought too long.");
+                    continue;
+                }
+
+                Thread thinkThread = new Thread(() -> {
                     try {
-                        robot.think(robots, projectiles, map, powerUps);
+                        robot.think(this.robots, projectiles, this.map, this.powerUps);
+                        robot.step(this);
                     } catch (Exception e) {
                         System.err.println("Exception in Robot " + robot.getName() + " think method: " + e.getMessage());
                         e.printStackTrace();
                         robot.setSuccessfulThink(false);
-                    } finally {
-                        Robot.endThinkContext();
                     }
                 });
 
-                long startTime = System.currentTimeMillis();
+                thinkThread.setName("RobotThinkThread-" + robot.getName());
+                thinkThread.start();
                 try {
-                    thinkFuture.get(THINK_TIME_LIMIT_MS, TimeUnit.MILLISECONDS);
-                } catch (TimeoutException e) {
-                    thinkFuture.cancel(true);
-                    long elapsedTime = System.currentTimeMillis() - startTime;
-                    robot.setSuccessfulThink(false);
-                    System.out.println("Robot " + robot.getName() + " think method timed out after " + elapsedTime + "ms.");
+                    thinkThread.join(Utilities.GAME_DELAY * 1000);
                 } catch (InterruptedException e) {
-                    System.err.println("Game thread interrupted while waiting for robot think: " + e.getMessage());
-                    thinkFuture.cancel(true);
-                    robot.setSuccessfulThink(false);
-                    Thread.currentThread().interrupt();
-                } catch (ExecutionException e) {
-                    robot.setSuccessfulThink(false);
-                }
-
-                if (robot.isAlive()) {
-                    robot.step(this);
-                    rebuildRobotGrid();
+                    System.err.println("Thread was interrupted: " + e.getMessage());
                 }
             }
+            rebuildRobotGrid();
         }
 
         if (robots != null && powerUps != null && !powerUps.isEmpty()) {

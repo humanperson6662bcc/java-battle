@@ -10,8 +10,11 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 
 public class GameManager {
-    private ArrayList<String> robotOptions;
-    private ArrayList<String> mapOptions;
+    private long START_TIME_MS;
+
+    private ArrayList<String> robotOptions = new ArrayList<String>();
+    private ArrayList<String> mapOptions = new ArrayList<String>();
+    private ArrayList<HealthBox> healthBoxes = new ArrayList<HealthBox>();
 
     private JFrame frame; // Menu frame
     private JComboBox<String> mapComboBox;
@@ -33,23 +36,19 @@ public class GameManager {
     private int gameLoopCounter = 0;
 
     private final int SCROLL_STEP = 32;
-    private final int GAME_TIMER_DELAY_MS = 40;
-    private final double[] speedFactors = {0.25, 0.5, 1.0, 2.0, 4.0, 6.0, 8.0};
+    private int GAME_TIMER_DELAY_MS;
+    private final double[] speedFactors = {0.25, 0.5, 1.0, 2.0, 4.0};
     private int currentSpeedIndex = 2;
     private static final DecimalFormat df = new DecimalFormat("0.##");
 
     private static final int MAX_TOTAL_ROBOT_SLOTS = 16; // Total capacity
-    private ArrayList<JComboBox<String>> robotSlotComboBoxesList; // Changed to ArrayList
-    private ArrayList<JPanel> robotStatDisplayPanelsList; // Changed to ArrayList
+    private ArrayList<JComboBox<String>> robotSlotComboBoxesList = new ArrayList<JComboBox<String>>();
+    private ArrayList<JPanel> robotStatDisplayPanelsList = new ArrayList<JPanel>();
     private JPanel robotSelectionPanel; // Panel to hold all robot slots, will be scrollable
     private int currentRobotSlots = 0;
 
 
     public GameManager() {
-        this.robotOptions = new ArrayList<>();
-        this.mapOptions = new ArrayList<>();
-        this.robotSlotComboBoxesList = new ArrayList<>(); // Initialize ArrayList
-        this.robotStatDisplayPanelsList = new ArrayList<>(); // Initialize ArrayList
         loadRobotOptions(); // Populates this.robotOptions
         loadMapOptions();   // Populates this.mapOptions
         Utilities.loadImages();
@@ -293,6 +292,7 @@ public class GameManager {
         }
         
         int maxGameDurationSeconds = 300;
+        GAME_TIMER_DELAY_MS = Utilities.GAME_DELAY * selectedRobotList.size() + 5;
         gamePanel = new Game(selectedRobotList, selectedMapName, maxGameDurationSeconds * 1000 / GAME_TIMER_DELAY_MS);
 
         gamePanel.setPreferredSize(new Dimension(Utilities.SCREEN_WIDTH, Utilities.SCREEN_HEIGHT));
@@ -376,7 +376,12 @@ public class GameManager {
         robotStatusPanel = new JPanel();
         robotStatusPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 5));
         robotStatusPanel.setBackground(Color.DARK_GRAY.darker());
-        robotStatusPanel.setPreferredSize(new Dimension(Utilities.SCREEN_WIDTH, 100)); // Adjust as needed
+        robotStatusPanel.setPreferredSize(new Dimension(Utilities.SCREEN_WIDTH, 100));
+        for(Robot robot : gamePanel.getRobots()) {
+            HealthBox healthBox = new HealthBox(robot);
+            healthBoxes.add(healthBox);
+            robotStatusPanel.add(healthBox);
+        }
         bottomContainer.add(robotStatusPanel);
 
         gameFrame.add(gamePanel, BorderLayout.CENTER);
@@ -384,7 +389,6 @@ public class GameManager {
         gameFrame.pack();
         gameFrame.setMinimumSize(new Dimension(800, 700)); // Adjusted for new bottom panel
         gameFrame.setLocationRelativeTo(null);
-
 
         gamePanel.addKeyListener(new KeyAdapter() {
             @Override
@@ -442,35 +446,8 @@ public class GameManager {
 
     private void updateRobotStatusDisplay() {
         if (robotStatusPanel == null || gamePanel == null || gamePanel.getRobots() == null) return;
-        robotStatusPanel.removeAll();
-        for (Robot robot : gamePanel.getRobots()) {
-            JPanel singleRobotPanel = new JPanel();
-            singleRobotPanel.setOpaque(false);
-            singleRobotPanel.setLayout(new BoxLayout(singleRobotPanel, BoxLayout.Y_AXIS));
-            singleRobotPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-            // Add border based on robot status
-            if (!robot.isSuccessfulThink()) {
-                singleRobotPanel.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-            } else if (robot.hasSpeedBoost()) {
-                singleRobotPanel.setBorder(BorderFactory.createLineBorder(Color.GREEN, 2));
-            } else if (robot.hasAttackBoost()) {
-                singleRobotPanel.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
-            }
-
-            BufferedImage img = robot.getImage();
-            JLabel imageLabel = (img != null) ? new JLabel(new ImageIcon(img.getScaledInstance(32, 32, Image.SCALE_SMOOTH))) : new JLabel("No Img");
-            imageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-            singleRobotPanel.add(imageLabel);
-            JLabel nameLabel = new JLabel(robot.getName());
-            nameLabel.setForeground(Color.WHITE);
-            nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-            singleRobotPanel.add(nameLabel);
-            HealthBar healthBar = new HealthBar(robot.getHealth(), robot.getMaxHealth());
-            healthBar.setPreferredSize(new Dimension(50, 10));
-            healthBar.setAlignmentX(Component.CENTER_ALIGNMENT);
-            singleRobotPanel.add(healthBar);
-            robotStatusPanel.add(singleRobotPanel);
+        for (HealthBox healthBox : healthBoxes) {
+            healthBox.updateHealth();
         }
         robotStatusPanel.revalidate();
         robotStatusPanel.repaint();
@@ -481,10 +458,6 @@ public class GameManager {
             gamePanel.setDisplayParameters(gamePanel.getWidth(), gamePanel.getHeight(), (int) Math.round(cameraX), (int) Math.round(cameraY), zoomFactor);
             gamePanel.repaint();
             if (timerLabel != null) {
-                // gamePanel.getDuration() is the number of steps taken
-                // gamePanel.getMaxDuration() is the total number of steps for the game
-                // GAME_TIMER_DELAY_MS is the duration of one step in milliseconds
-
                 int stepsTaken = gamePanel.getDuration();
                 int maxSteps = gamePanel.getMaxDuration();
                 int stepsRemaining = maxSteps - stepsTaken;
@@ -506,6 +479,7 @@ public class GameManager {
     }
 
     private void gameLoop() {
+        START_TIME_MS = System.currentTimeMillis();
         if (gamePanel == null) {
             if (gameTimer != null) gameTimer.stop();
             return;
@@ -520,17 +494,7 @@ public class GameManager {
             return;
         }
         
-        double stepsToExecute = 0;
-        if (gameSpeedFactor < 1.0) {
-            if (gameLoopCounter % (int) Math.round(1.0 / gameSpeedFactor) == 0) {
-                stepsToExecute = 1;
-            }
-        }else {
-            stepsToExecute = gameSpeedFactor;
-        }
-
-        for (int i = 0; i < stepsToExecute; i++) {
-            if (gamePanel.isGameOver()) break;
+        if (gameLoopCounter % (int) Math.round(4.0 / gameSpeedFactor) == 0) {
             gamePanel.step();
         }
         
@@ -542,8 +506,9 @@ public class GameManager {
             }
         } else {
             updateGameDisplayAndRepaint();
+            System.out.println(System.currentTimeMillis() - START_TIME_MS + " ms");
         }
-        
+            
         gameLoopCounter++;
         if (gameLoopCounter >= 10000) gameLoopCounter = 0;
     }
@@ -711,13 +676,56 @@ public class GameManager {
         }
     }
 
+    class HealthBox extends JPanel {
+        private Robot robot;
+        private HealthBar healthBar;
+
+        public HealthBox(Robot robot) {
+            this.robot = robot;
+
+            setOpaque(false);
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+            setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            BufferedImage img = robot.getImage();
+            JLabel imageLabel = (img != null) ? new JLabel(new ImageIcon(img.getScaledInstance(32, 32, Image.SCALE_SMOOTH))) : new JLabel("No Img");
+            imageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            add(imageLabel);
+            JLabel nameLabel = new JLabel(robot.getName());
+            nameLabel.setForeground(Color.WHITE);
+            nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            add(nameLabel);
+            healthBar = new HealthBar(robot.getHealth(), robot.getMaxHealth());
+            healthBar.setPreferredSize(new Dimension(50, 10));
+            healthBar.setAlignmentX(Component.CENTER_ALIGNMENT);
+            add(healthBar);
+        }
+
+        public void updateHealth() {
+            healthBar.currentHealth = robot.getHealth();
+            healthBar.maxHealth = robot.getMaxHealth();
+            // Add border based on robot status
+            if (!robot.isSuccessfulThink()) {
+                setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+            } else if (robot.hasSpeedBoost()) {
+                setBorder(BorderFactory.createLineBorder(Color.GREEN, 2));
+            } else if (robot.hasAttackBoost()) {
+                setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
+            } else {
+                setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
+            }
+        }
+    }
+
     class HealthBar extends JPanel {
         private int currentHealth;
         private int maxHealth;
+
         public HealthBar(int currentHealth, int maxHealth) {
             this.currentHealth = currentHealth;
             this.maxHealth = maxHealth;
         }
+
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);

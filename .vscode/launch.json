@@ -5,6 +5,13 @@
             "type": "java",
             "name": "Launch App",
             "request": "launch",
+            "mainClass": "javaJostle/app.javaJostle.App",
+            "projectName": "java-battle",
+        },
+        {
+            "type": "java",
+            "name": "Launch App",
+            "request": "launch",
             "mainClass": "app.javaJostle.App",
             "projectName": "java-battle",
             "preLaunchTask": "gradle compileRobots"

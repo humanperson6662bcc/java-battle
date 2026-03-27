@@ -1,10 +1,11 @@
-package app.javaJostle;
+package app.robots;
+import app.javaJostle.*;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
-public class LastYearsWinner extends RobotFilter{
+public class LastYearsWinner extends Robot{
     private int lastX;
     private int lastY;
     private int distancesDist;
@@ -22,9 +23,10 @@ public class LastYearsWinner extends RobotFilter{
     private int stuckCounter = 0;
 
     public LastYearsWinner(int x, int y){
-        super(x, y, 3, 3, 2, 2,"bob2", ".png", "defaultProjectileImage.png");
+        super(x, y, 2, 3, 2, 3,"bob", "lastYearsWinnerImage.png", "defaultProjectileImage.png");
         // Health: 3, Speed: 3, Attack Speed: 2, Projectile Strength: 2
         // Total = 10
+        // Image name is "lastYearsWinnerImage.png"
     }
 
     private class Tile {
@@ -45,34 +47,34 @@ public class LastYearsWinner extends RobotFilter{
         }
     }
 
-    public void think(final ArrayList<Robot> robots, final ArrayList<Projectile> projectiles, final Map map, final ArrayList<PowerUp> powerups) {
+    public void think(ArrayList<Robot> robots, ArrayList<Projectile> projectiles, Map map, ArrayList<PowerUp> powerups) {
         int high = 0;
         ArrayList<Robot> otherRobots = new ArrayList<Robot>();
         for(int i = 0; i < robots.size(); i++) {
-            if(!robots.get(i).isSelf() && robots.get(i).isAlive()) {
+            if(robots.get(i) != this && robots.get(i).isAlive()) {
                 if(robots.get(i).getProjectileStrengthPoints() + 5 > high) { 
                     high = robots.get(i).getProjectileStrengthPoints() + 5;
                 }
                 otherRobots.add(robots.get(i));
             }
         }
-        distancesDist = high - speed;
+        distancesDist = high - getSpeed();
         if(powerups.size() > 0) {
             dijkstras(map, projectiles, powerups.get(0).getX(), powerups.get(0).getY(), otherRobots);
         } else {
             farDijkstras(otherRobots, projectiles, map);
         }
-        if(canAttack){
-            for (Robot robot : robots) {
-                if (!robot.isSelf() && robot.isAlive()) {
+        if(canAttack()){
+            for(Robot robot : robots) {
+                if (robot != this && robot.isAlive() ){
                     if(predictiveAimAndShoot(robot)) {
                         break;
                     }
                 }
             }
         }
-        int currentX = x;
-        int currentY = y;
+        int currentX = getX();
+        int currentY = getY();
         if (currentX == lastBotX && currentY == lastBotY) {
             stuckCounter++;
         } else {
@@ -99,18 +101,18 @@ public class LastYearsWinner extends RobotFilter{
     private void farDijkstras(ArrayList<Robot> robots, ArrayList<Projectile> projectiles, Map map) {
         ArrayList<Robot> otherRobots = new ArrayList<Robot>();
         tiles = map.getTiles();
-        width = tiles[0].length;
-        height = tiles.length;
+        width = map.getTiles()[0].length;
+        height = map.getTiles().length;
         visited = new boolean[width][height];
         distances = new int[width][height];
 
-        for (Robot robot : robots) {
-            if (!robot.isSelf()) {
+        for(Robot robot : robots) {
+            if(robot != this) {
                 otherRobots.add(robot);
             }
         }
 
-        for (Robot robot : otherRobots) {
+        for(Robot robot : otherRobots) {
             for(int i = 0; i < width; i++) {
                 for(int j = 0; j < height; j++) {
                     if(tiles[j][i] == Utilities.WALL) {  
@@ -180,8 +182,8 @@ public class LastYearsWinner extends RobotFilter{
         if(!hasLineOfSight(target)) {
             return false;
         }
-        double shooterX = x;
-        double shooterY = y;
+        double shooterX = getX();
+        double shooterY = getY();
         double targetX = target.getX();
         double targetY = target.getY();
         double targetVelX = target.getXMovement() * target.getSpeed();
@@ -212,24 +214,23 @@ public class LastYearsWinner extends RobotFilter{
         return true;
     }
 
-    public void dijkstras(Map map, ArrayList<Projectile> projectiles, double targetX, double targetY,
-            ArrayList<Robot> otherRobots) {
+    public void dijkstras(Map map, ArrayList<Projectile> projectiles, double targetX, double targetY, ArrayList<Robot> otherRobots) {
         tiles = map.getTiles();
-        width = tiles[0].length;
-        height = tiles.length;
+        width = map.getTiles()[0].length;
+        height = map.getTiles().length;
         visited = new boolean[width][height];
         distances = new int[width][height];
 
-        int robotTileX = x / Utilities.TILE_SIZE;
-        int robotTileY = y / Utilities.TILE_SIZE;
-        int robotTileXPlus = (x + Utilities.ROBOT_SIZE) / Utilities.TILE_SIZE;
-        int robotTileYPlus = (y + Utilities.ROBOT_SIZE) / Utilities.TILE_SIZE;
+        int robotTileX = getX() / Utilities.TILE_SIZE;
+        int robotTileY = getY() / Utilities.TILE_SIZE;
+        int robotTileXPlus = (getX() + Utilities.ROBOT_SIZE) / Utilities.TILE_SIZE;
+        int robotTileYPlus = (getY() + Utilities.ROBOT_SIZE) / Utilities.TILE_SIZE;
         targetTileX = (int) targetX/ Utilities.TILE_SIZE;
         targetTileY = (int) targetY / Utilities.TILE_SIZE;
     
         dangerMap = new boolean[width][height];
         for (Projectile p : projectiles) {
-            if(p.getOwner() == null || !p.getOwner().isSelf()) {
+            if(p.getOwner() != this) {
                 double currpx = p.getX();
                 double currpy = p.getY();
                 double px = p.getX();
@@ -244,8 +245,8 @@ public class LastYearsWinner extends RobotFilter{
 
                     double tileCenterX = tx * Utilities.TILE_SIZE + Utilities.TILE_SIZE / 2.0;
                     double tileCenterY = ty * Utilities.TILE_SIZE + Utilities.TILE_SIZE / 2.0;
-                    double myDist = (Math.abs(x + (lastX == -1 || lastY == -1 ? Utilities.TILE_SIZE : 0) - tileCenterX) + Math.abs(y + (lastX == -1 || lastY == -1 ? Utilities.TILE_SIZE : 0) - tileCenterY))/Utilities.TILE_SIZE;
-                    int mySteps = (int)Math.ceil(myDist / speed);
+                    double myDist = (Math.abs(getX() + (lastX == -1 || lastY == -1 ? Utilities.TILE_SIZE : 0) - tileCenterX) + Math.abs(getY() + (lastX == -1 || lastY == -1 ? Utilities.TILE_SIZE : 0) - tileCenterY))/Utilities.TILE_SIZE;
+                    int mySteps = (int)Math.ceil(myDist / (getSpeed()));
                     double projDist = Math.sqrt((currpx - tileCenterX) * (currpx - tileCenterX) + (currpy - tileCenterY) * (currpy - tileCenterY))/Utilities.TILE_SIZE;
                     int projSteps = (int)Math.ceil(projDist / (p.getProjectileSpeed()));
 
@@ -253,7 +254,7 @@ public class LastYearsWinner extends RobotFilter{
                         if(tiles[ty][tx] == Utilities.WALL) {
                             break;
                         }
-                        if (mySteps > projSteps - (p.getProjectileSpeed() - speed)/3 && mySteps < projSteps + (p.getProjectileSpeed() - speed)/3) {
+                        if (mySteps > projSteps - (p.getProjectileSpeed() - getSpeed())/3 && mySteps < projSteps + (p.getProjectileSpeed() - getSpeed())/3) {
                             dangerMap[tx][ty] = true;
                         }
                     }
@@ -286,7 +287,7 @@ public class LastYearsWinner extends RobotFilter{
             }
         }
 
-        for (Robot robot : otherRobots) {
+        for(Robot robot : otherRobots) {
             for(int i = Math.max(robot.getX()/Utilities.TILE_SIZE - distancesDist + 1, 0); i < Math.min(robot.getX()/Utilities.TILE_SIZE + distancesDist, tiles[0].length); i++) {
                 for(int j = Math.max(robot.getY()/Utilities.TILE_SIZE - distancesDist + 1, 0); j < Math.min(robot.getY()/Utilities.TILE_SIZE + distancesDist, tiles.length); j++) {
                     visited[i][j] = true;
@@ -369,7 +370,7 @@ public class LastYearsWinner extends RobotFilter{
             lastY = y - robotTileY;
         }
     } 
-    
+
     private double[] newTarget(double targetX, double targetY) {
         double[] targets = new double[2];
         boolean[][] already = new boolean[distances.length][distances[0].length];
@@ -435,8 +436,8 @@ public class LastYearsWinner extends RobotFilter{
 
     private void runAway(ArrayList<Projectile> projectiles) {
         double[] moveScores = new double[4]; // up, down, left, right
-        int currX = x;
-        int currY = y;
+        int currX = getX();
+        int currY = getY();
 
         for (Projectile p : projectiles) {
             double px = p.getX();
@@ -462,16 +463,16 @@ public class LastYearsWinner extends RobotFilter{
         int bestDir = 0;
         for (int i = 1; i < 4; i++) {
             if (moveScores[i] > moveScores[bestDir]) {
-                if(distances[x/Utilities.TILE_SIZE][y/Utilities.TILE_SIZE + 1] == Utilities.WALL && i == 0) {
+                if(distances[getX()/Utilities.TILE_SIZE][getY()/Utilities.TILE_SIZE + 1] == Utilities.WALL && i == 0) {
                     continue;
                 }
-                if(distances[x/Utilities.TILE_SIZE][y/Utilities.TILE_SIZE - 1] == Utilities.WALL && i == 1) {
+                if(distances[getX()/Utilities.TILE_SIZE][getY()/Utilities.TILE_SIZE - 1] == Utilities.WALL && i == 1) {
                     continue;
                 }
-                if(distances[x/Utilities.TILE_SIZE + 1][y/Utilities.TILE_SIZE] == Utilities.WALL && i == 3) {
+                if(distances[getX()/Utilities.TILE_SIZE + 1][getY()/Utilities.TILE_SIZE] == Utilities.WALL && i == 3) {
                     continue;
                 }
-                if(distances[x/Utilities.TILE_SIZE - 1][y/Utilities.TILE_SIZE] == Utilities.WALL && i == 2) {
+                if(distances[getX()/Utilities.TILE_SIZE - 1][getY()/Utilities.TILE_SIZE] == Utilities.WALL && i == 2) {
                     continue;
                 }
                 bestDir = i;
@@ -498,8 +499,8 @@ public class LastYearsWinner extends RobotFilter{
     }
 
     private boolean hasLineOfSight(Robot target) {
-        int startX = x + Utilities.ROBOT_SIZE / 2;
-        int startY = y + Utilities.ROBOT_SIZE / 2;
+        int startX = getX() + Utilities.ROBOT_SIZE / 2;
+        int startY = getY() + Utilities.ROBOT_SIZE / 2;
         int targetLeft = target.getX();
         int targetRight = target.getX() + Utilities.ROBOT_SIZE - 1;
         int targetTop = target.getY();

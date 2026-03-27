@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import javax.imageio.ImageIO;
 
 public class Utilities {
@@ -30,6 +29,8 @@ public class Utilities {
     public static final int MUD = 2;
 
     public static final double POWER_UP_SPAWN_CHANCE = 0.003;
+
+    public static final int GAME_DELAY = 5;
 
     public static final int SCREEN_WIDTH = 800;
     public static final int SCREEN_HEIGHT = 600;
@@ -220,7 +221,7 @@ public class Utilities {
                 
                 try {
                     Class<?> loadedClass = robotClassLoader.loadClass(fullClassName);
-                    if (!RobotFilter.class.isAssignableFrom(loadedClass)) {
+                    if (!Robot.class.isAssignableFrom(loadedClass)) {
                         continue;
                     }
 
@@ -257,10 +258,9 @@ public class Utilities {
         }
         
         try {
-            // loadedRobotClasses only contains validated RobotFilter classes.
+            // loadedRobotClasses only contains validated Robot classes.
             Constructor<?> constructor = loadedClass.getConstructor(int.class, int.class);
-            RobotFilter filter = (RobotFilter) constructor.newInstance(x, y);
-            Robot robot = Robot.createFromFilter(x, y, filter);
+            Robot robot = (Robot) constructor.newInstance(x, y);
 
             System.out.println("Created robot instance: " + className);
             return robot;

@@ -21,21 +21,21 @@ application {
 
 // Task to compile robot files automatically
 task compileRobots {
-    description = "Compile all classes that extend the RobotFilter class"
+    description = "Compile all classes that extend the Robot class"
     
     doLast {
-        File sourceDir = file('src/main/java/app/javaJostle')
+        File sourceDir = file('src/main/java/app/robots')
         File outputDir = file('src/main/resources/robots')
 
         outputDir.mkdirs()
 
-        // Find all Java files that extend RobotFilter
+        // Find all Java files that extend Robot
         List<File> robotSources = sourceDir.listFiles()
             .findAll { it.isFile() && it.name.endsWith('.java') }
-            .findAll { it.text.matches('(?s).*public\\s+class\\s+\\w+\\s+extends\\s+RobotFilter.*') }
+            .findAll { it.text.matches('(?s).*public\\s+class\\s+\\w+\\s+extends\\s+Robot.*') }
 
         if (robotSources.isEmpty()) {
-            println "No classes extending RobotFilter found to compile."
+            println "No classes extending Robot found to compile."
             return
         }
 
