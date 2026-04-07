@@ -1,10 +1,6 @@
-package app.robots;
+package app.javaJostle;
 
-import java.util.ArrayList;
-import app.javaJostle.Map;
-import app.javaJostle.PowerUp;
-import app.javaJostle.Projectile;
-import app.javaJostle.Robot;
+import java.util.List;
 
 public class Rock extends Robot {
     public Rock(int x, int y){
@@ -14,7 +10,7 @@ public class Rock extends Robot {
         // Total = 10
     }
 
-    public void think(ArrayList<Robot> robots, ArrayList<Projectile> projectiles, Map map, ArrayList<PowerUp> powerups) {
+    public void think(List<RobotReadOnly> robots, List<ProjectileReadOnly> projectiles, MapReadOnly map, List<PowerUpReadOnly> powerups) {
         //rock robot is not smart and doesn't think very well. 
                 
     }

@@ -1,5 +1,6 @@
 package app.javaJostle;
 import java.util.ArrayList;
+import java.util.List;
 
 import java.awt.image.BufferedImage;
 
@@ -42,30 +43,30 @@ public abstract class Robot {
     private int originalProjectileDamage;
 
 
-    public Robot(int x, int y, int healthPoints, int speedPoints, int attackSpeedPoints, int projectileStrengthPoints,
-            String robotName, String imageName, String projectileImageName) {
+    public Robot(int x, int y, int healthPoints, int speedPoints, int attackSpeedPoints, int projectileStrengthPoints, String robotName, String imageName, String projectileImageName) {
         // all values need to be from 1-5, summing to 10 in total
         int sum = healthPoints + speedPoints + attackSpeedPoints + projectileStrengthPoints;
 
         if (healthPoints < 1) {
-            throw new IllegalArgumentException("Health points must be at least 1");
+            throw new IllegalArgumentException(robotName + "\'s health points must be at least 1");
         } else if (speedPoints < 1) {
-            throw new IllegalArgumentException("Speed points must be at least 1");
+            throw new IllegalArgumentException(robotName + "\'s speed points must be at least 1");
         } else if (attackSpeedPoints < 1) {
-            throw new IllegalArgumentException("Attack speed points must be at least 1");
+            throw new IllegalArgumentException(robotName + "\'s attack speed points must be at least 1");
         } else if (projectileStrengthPoints < 1) {
-            throw new IllegalArgumentException("Projectile strength points must be at least 1");
+            throw new IllegalArgumentException(robotName + "\'s projectile strength points must be at least 1");
         } else if (sum != 10) {
-            throw new IllegalArgumentException("The sum of all points must equal 10");
+            throw new IllegalArgumentException(robotName + "\'s sum of all points must equal 10");
         } else if (healthPoints > 5) {
-            throw new IllegalArgumentException("Health points must not exceed 5");
+            throw new IllegalArgumentException(robotName + "\'s health points must not exceed 5");
         } else if (speedPoints > 5) {
-            throw new IllegalArgumentException("Speed points must not exceed 5");
+            throw new IllegalArgumentException(robotName + "\'s speed points must not exceed 5");
         } else if (attackSpeedPoints > 5) {
-            throw new IllegalArgumentException("Attack speed points must not exceed 5");
+            throw new IllegalArgumentException(robotName + "\'s attack speed points must not exceed 5");
         } else if (projectileStrengthPoints > 5) {
-            throw new IllegalArgumentException("Projectile strength points must not exceed 5");
+            throw new IllegalArgumentException(robotName + "\'s projectile strength points must not exceed 5");
         }
+        
         this.image = Utilities.loadImage(imageName);
         if (this.image == null) {
             this.image = Utilities.ROBOT_ERROR;
@@ -108,7 +109,7 @@ public abstract class Robot {
         shoot = true;
     }
 
-    public abstract void think(final ArrayList<Robot> robots, final ArrayList<Projectile> projectiles, final Map map, final ArrayList<PowerUp> powerups);
+    public abstract void think(final List<RobotReadOnly> robots, final List<ProjectileReadOnly> projectiles, final MapReadOnly map, final List<PowerUpReadOnly> powerups);
 
     private boolean isPointOkay(int pX, int pY, Map gameMap, ArrayList<Robot> allRobots) {
         if (gameMap == null || gameMap.getTiles() == null)

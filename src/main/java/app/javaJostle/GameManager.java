@@ -267,7 +267,7 @@ public class GameManager {
 
     private void startGame() {
         ArrayList<String> selectedRobotList = new ArrayList<>();
-        // Iterate through the dynamically added combo boxes
+
         for (int i = 0; i < robotSlotComboBoxesList.size(); i++) { 
             String selectedName = (String) robotSlotComboBoxesList.get(i).getSelectedItem();
             if (selectedName != null && !selectedName.equals("None")) {

@@ -4,6 +4,7 @@ import javax.swing.JPanel;
 import java.awt.Graphics;
 import java.awt.Dimension;
 import java.util.ArrayList;
+import java.util.AbstractList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,7 +17,11 @@ public class Game extends JPanel {
     private ArrayList<Robot> robots;
     private ArrayList<Projectile> projectiles = new ArrayList<>();
     private ArrayList<PowerUp> powerUps;
+    private List<RobotReadOnly> readOnlyRobotsView;
+    private List<ProjectileReadOnly> readOnlyProjectilesView;
+    private List<PowerUpReadOnly> readOnlyPowerUpsView;
     private Map map;
+    private MapReadOnly mapReadOnly;
     private int duration = 0;
     private Random randomGenerator;
     private int currentWidth, currentHeight, currentCameraX, currentCameraY;
@@ -27,10 +32,14 @@ public class Game extends JPanel {
     public Game(ArrayList<String> robotFileNames, String mapName, int maxDuration) {
         robots = new ArrayList<>();
         powerUps = new ArrayList<>();
+        readOnlyRobotsView = createRobotReadOnlyView();
+        readOnlyProjectilesView = createProjectileReadOnlyView();
+        readOnlyPowerUpsView = createPowerUpReadOnlyView();
         this.maxDuration = maxDuration;
         randomGenerator = new Random();
 
         map = new Map(mapName);
+        mapReadOnly = new ReadOnlyMap(map);
 
         try {
             for (String className : robotFileNames) {
@@ -222,6 +231,48 @@ public class Game extends JPanel {
         return list != null ? list : Collections.emptyList();
     }
 
+    private List<RobotReadOnly> createRobotReadOnlyView() {
+        return new AbstractList<RobotReadOnly>() {
+            @Override
+            public RobotReadOnly get(int index) {
+                return new ReadOnlyRobot(robots.get(index));
+            }
+
+            @Override
+            public int size() {
+                return robots.size();
+            }
+        };
+    }
+
+    private List<ProjectileReadOnly> createProjectileReadOnlyView() {
+        return new AbstractList<ProjectileReadOnly>() {
+            @Override
+            public ProjectileReadOnly get(int index) {
+                return new ReadOnlyProjectile(projectiles.get(index));
+            }
+
+            @Override
+            public int size() {
+                return projectiles.size();
+            }
+        };
+    }
+
+    private List<PowerUpReadOnly> createPowerUpReadOnlyView() {
+        return new AbstractList<PowerUpReadOnly>() {
+            @Override
+            public PowerUpReadOnly get(int index) {
+                return new ReadOnlyPowerUp(powerUps.get(index));
+            }
+
+            @Override
+            public int size() {
+                return powerUps.size();
+            }
+        };
+    }
+
     public void step() {
         Set<Thread> threads = Thread.getAllStackTraces().keySet();
         ArrayList<String> excludeRobots = new ArrayList<String>();
@@ -240,13 +291,12 @@ public class Game extends JPanel {
 
                 if(excludeRobots.contains(robot.getName())) {
                     robot.setSuccessfulThink(false);
-                    System.err.println("Robot " + robot.getName() + " thought too long.");
                     continue;
                 }
 
                 Thread thinkThread = new Thread(() -> {
                     try {
-                        robot.think(this.robots, projectiles, this.map, this.powerUps);
+                        robot.think(readOnlyRobotsView, readOnlyProjectilesView, mapReadOnly, readOnlyPowerUpsView);
                         robot.step(this);
                     } catch (Exception e) {
                         System.err.println("Exception in Robot " + robot.getName() + " think method: " + e.getMessage());
@@ -258,7 +308,7 @@ public class Game extends JPanel {
                 thinkThread.setName("RobotThinkThread-" + robot.getName());
                 thinkThread.start();
                 try {
-                    thinkThread.join(Utilities.GAME_DELAY * 1000);
+                    thinkThread.join(Utilities.GAME_DELAY);
                 } catch (InterruptedException e) {
                     System.err.println("Thread was interrupted: " + e.getMessage());
                 }

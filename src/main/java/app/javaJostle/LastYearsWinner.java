@@ -1,7 +1,7 @@
-package app.robots;
-import app.javaJostle.*;
+package app.javaJostle;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -47,11 +47,11 @@ public class LastYearsWinner extends Robot{
         }
     }
 
-    public void think(ArrayList<Robot> robots, ArrayList<Projectile> projectiles, Map map, ArrayList<PowerUp> powerups) {
+    public void think(List<RobotReadOnly> robots, List<ProjectileReadOnly> projectiles, MapReadOnly map, List<PowerUpReadOnly> powerups) {
         int high = 0;
-        ArrayList<Robot> otherRobots = new ArrayList<Robot>();
+        ArrayList<RobotReadOnly> otherRobots = new ArrayList<RobotReadOnly>();
         for(int i = 0; i < robots.size(); i++) {
-            if(robots.get(i) != this && robots.get(i).isAlive()) {
+            if(!robots.get(i).getName().equals(getName()) && robots.get(i).isAlive()) {
                 if(robots.get(i).getProjectileStrengthPoints() + 5 > high) { 
                     high = robots.get(i).getProjectileStrengthPoints() + 5;
                 }
@@ -65,8 +65,8 @@ public class LastYearsWinner extends Robot{
             farDijkstras(otherRobots, projectiles, map);
         }
         if(canAttack()){
-            for(Robot robot : robots) {
-                if (robot != this && robot.isAlive() ){
+            for(RobotReadOnly robot : robots) {
+                if (!robot.getName().equals(getName()) && robot.isAlive() ){
                     if(predictiveAimAndShoot(robot)) {
                         break;
                     }
@@ -98,21 +98,21 @@ public class LastYearsWinner extends Robot{
         }
     }
 
-    private void farDijkstras(ArrayList<Robot> robots, ArrayList<Projectile> projectiles, Map map) {
-        ArrayList<Robot> otherRobots = new ArrayList<Robot>();
+    private void farDijkstras(List<RobotReadOnly> robots, List<ProjectileReadOnly> projectiles, MapReadOnly map) {
+        ArrayList<RobotReadOnly> otherRobots = new ArrayList<RobotReadOnly>();
         tiles = map.getTiles();
         width = map.getTiles()[0].length;
         height = map.getTiles().length;
         visited = new boolean[width][height];
         distances = new int[width][height];
 
-        for(Robot robot : robots) {
-            if(robot != this) {
+        for(RobotReadOnly robot : robots) {
+            if(!robot.getName().equals(getName())) {
                 otherRobots.add(robot);
             }
         }
 
-        for(Robot robot : otherRobots) {
+        for(RobotReadOnly robot : otherRobots) {
             for(int i = 0; i < width; i++) {
                 for(int j = 0; j < height; j++) {
                     if(tiles[j][i] == Utilities.WALL) {  
@@ -178,7 +178,7 @@ public class LastYearsWinner extends Robot{
         dijkstras(map, projectiles, (farthestX + (flip ? (farthestX < 12 ? 2 : -2) : 0)) * Utilities.TILE_SIZE, (farthestY + (flip ? (farthestY < 9 ? 2 : -2) : 0)) * Utilities.TILE_SIZE, otherRobots);
     } 
 
-    private boolean predictiveAimAndShoot(Robot target) {
+    private boolean predictiveAimAndShoot(RobotReadOnly target) {
         if(!hasLineOfSight(target)) {
             return false;
         }
@@ -214,7 +214,7 @@ public class LastYearsWinner extends Robot{
         return true;
     }
 
-    public void dijkstras(Map map, ArrayList<Projectile> projectiles, double targetX, double targetY, ArrayList<Robot> otherRobots) {
+    public void dijkstras(MapReadOnly map, List<ProjectileReadOnly> projectiles, double targetX, double targetY, List<RobotReadOnly> otherRobots) {
         tiles = map.getTiles();
         width = map.getTiles()[0].length;
         height = map.getTiles().length;
@@ -229,8 +229,8 @@ public class LastYearsWinner extends Robot{
         targetTileY = (int) targetY / Utilities.TILE_SIZE;
     
         dangerMap = new boolean[width][height];
-        for (Projectile p : projectiles) {
-            if(p.getOwner() != this) {
+        for (ProjectileReadOnly p : projectiles) {
+            if(!p.getOwner().getName().equals(getName())) {
                 double currpx = p.getX();
                 double currpy = p.getY();
                 double px = p.getX();
@@ -287,7 +287,7 @@ public class LastYearsWinner extends Robot{
             }
         }
 
-        for(Robot robot : otherRobots) {
+        for(RobotReadOnly robot : otherRobots) {
             for(int i = Math.max(robot.getX()/Utilities.TILE_SIZE - distancesDist + 1, 0); i < Math.min(robot.getX()/Utilities.TILE_SIZE + distancesDist, tiles[0].length); i++) {
                 for(int j = Math.max(robot.getY()/Utilities.TILE_SIZE - distancesDist + 1, 0); j < Math.min(robot.getY()/Utilities.TILE_SIZE + distancesDist, tiles.length); j++) {
                     visited[i][j] = true;
@@ -434,12 +434,12 @@ public class LastYearsWinner extends Robot{
         return new double[2];
     }
 
-    private void runAway(ArrayList<Projectile> projectiles) {
+    private void runAway(List<ProjectileReadOnly> projectiles) {
         double[] moveScores = new double[4]; // up, down, left, right
         int currX = getX();
         int currY = getY();
 
-        for (Projectile p : projectiles) {
+        for (ProjectileReadOnly p : projectiles) {
             double px = p.getX();
             double py = p.getY();
             double distUp = Math.hypot(currX - px, (currY - Utilities.TILE_SIZE) - py);
@@ -498,7 +498,7 @@ public class LastYearsWinner extends Robot{
         }
     }
 
-    private boolean hasLineOfSight(Robot target) {
+    private boolean hasLineOfSight(RobotReadOnly target) {
         int startX = getX() + Utilities.ROBOT_SIZE / 2;
         int startY = getY() + Utilities.ROBOT_SIZE / 2;
         int targetLeft = target.getX();
@@ -516,7 +516,7 @@ public class LastYearsWinner extends Robot{
         }
         return false;
     }
-
+ 
     private boolean lineClear(int x0, int y0, int x1, int y1, int[][] tiles) {
         int dx = Math.abs(x1 - x0);
         int dy = Math.abs(y1 - y0);

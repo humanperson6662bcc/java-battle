@@ -24,7 +24,7 @@ task compileRobots {
     description = "Compile all classes that extend the Robot class"
     
     doLast {
-        File sourceDir = file('src/main/java/app/robots')
+        File sourceDir = file('src/main/java/app/javaJostle')
         File outputDir = file('src/main/resources/robots')
 
         outputDir.mkdirs()

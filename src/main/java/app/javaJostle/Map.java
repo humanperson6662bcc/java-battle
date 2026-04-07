@@ -6,11 +6,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class Map {
+public class Map implements MapReadOnly {
     private int[][] tiles;
+    private int[][] robotTilesSnapshot;
 
     public Map(int[][] tiles) {
-        this.tiles = tiles;
+        this.tiles = deepCopy(tiles);
+        rebuildRobotTilesSnapshot();
     }
 
     public Map(String name) {
@@ -44,10 +46,32 @@ public class Map {
             e.printStackTrace();
             tiles = new int[0][0]; // Initialize to empty if loading fails
         }
+        rebuildRobotTilesSnapshot();
+    }
+
+    int[][] getTilesInternal() {
+        return tiles;
     }
 
     public int[][] getTiles() {
-        return tiles;
+        // Return a fresh copy so callers cannot mutate shared map state.
+        return deepCopy(robotTilesSnapshot);
+    }
+
+    private void rebuildRobotTilesSnapshot() {
+        robotTilesSnapshot = deepCopy(tiles);
+    }
+
+    private static int[][] deepCopy(int[][] source) {
+        if (source == null) {
+            return null;
+        }
+
+        int[][] copy = new int[source.length][];
+        for (int i = 0; i < source.length; i++) {
+            copy[i] = source[i] != null ? source[i].clone() : null;
+        }
+        return copy;
     }
 
     public void display(Graphics g, int panelWidth, int panelHeight, int cameraX, int cameraY, double zoomFactor) {

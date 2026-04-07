@@ -1,7 +1,6 @@
-package app.robots;
-import app.javaJostle.*;
+package app.javaJostle;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class Rando extends Robot {
     private int curXMovement = 0;
@@ -12,7 +11,7 @@ public class Rando extends Robot {
     }
 
     @Override
-    public void think(ArrayList<Robot> robots, ArrayList<Projectile> projectiles, Map map, ArrayList<PowerUp> powerups) {
+    public void think(List<RobotReadOnly> robots, List<ProjectileReadOnly> projectiles, MapReadOnly map, List<PowerUpReadOnly> powerups) {
         if (Math.random() < 0.1) {
             double r = Math.random();
             if (r < 0.25) {
@@ -32,8 +31,8 @@ public class Rando extends Robot {
         xMovement = curXMovement;
         yMovement = curYMovement;
         if (canAttack()) {
-            for (Robot robot : robots) {
-                if (robot != this && robot.isAlive()) {
+            for (RobotReadOnly robot : robots) {
+                if (!robot.getName().equals(getName()) && robot.isAlive()) {
                     shootAtLocation(robot.getX() + Utilities.ROBOT_SIZE / 2, robot.getY() + Utilities.ROBOT_SIZE / 2);
                     break;
                 }
